@@ -4,15 +4,13 @@ This script performs fast, multithreaded network discovery with optional XML- or
 
 ## Installation
 
-Use the pinned dependency versions to avoid compatibility problems with `pysnmp`'s module layout:
+Use the official [pysnmp](https://github.com/pysnmp/pysnmp) package for SNMP access:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
-
-The `pysnmp==4.4.12` pin keeps the `pysnmp.hlapi` imports used by the script available. Newer releases removed these legacy entry points, which leads to `ImportError` failures if you install an unpinned `pysnmp` version.
 
 ## Usage
 
