@@ -4,8 +4,7 @@ This script performs fast, multithreaded network discovery with optional XML- or
 
 ## Installation
 
-Use the pinned dependency versions to avoid compatibility problems with `pysnmp`'s module layout and the
-`pyasn1.compat` helpers it expects:
+Use the pinned dependency versions to avoid compatibility problems with `pysnmp`'s module layout:
 
 ```bash
 python -m venv .venv
@@ -13,11 +12,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-The `pysnmp==4.4.12` pin keeps the `pysnmp.hlapi` imports used by the script available. Newer releases removed
-these legacy entry points, which leads to `ImportError` failures if you install an unpinned `pysnmp` version.
-Likewise, `pyasn1` must stay on the 0.4.x series—0.6.x removes `pyasn1.compat.octets`, which triggers
-`ModuleNotFoundError: No module named 'pyasn1.compat.octets'` during import. If you upgraded `pyasn1` by
-accident, reinstall the pinned requirements to restore compatibility.
+The `pysnmp==4.4.12` pin keeps the `pysnmp.hlapi` imports used by the script available. Newer releases removed these legacy entry points, which leads to `ImportError` failures if you install an unpinned `pysnmp` version.
 
 ## Usage
 
