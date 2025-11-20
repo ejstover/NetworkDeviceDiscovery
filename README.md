@@ -4,7 +4,8 @@ This script performs fast, multithreaded network discovery with optional XML- or
 
 ## Installation
 
-Use the official [pysnmp](https://github.com/pysnmp/pysnmp) package for SNMP access:
+Install dependencies and the [easysnmp](https://github.com/kamakazikamikaze/easysnmp)
+package for SNMP access:
 
 ```bash
 python -m venv .venv
