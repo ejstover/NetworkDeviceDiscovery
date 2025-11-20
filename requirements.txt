@@ -1,1 +1,1 @@
-pysnmp>=7.1.17
+easysnmp>=0.2.5

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import asyncio
 import concurrent.futures as cf
 import datetime
 import ipaddress
@@ -9,33 +8,7 @@ import socket
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
-import importlib
-
-
-ASYNC_HLAPI_AVAILABLE = (
-    importlib.util.find_spec("pysnmp.hlapi.v3arch.asyncio") is not None
-)
-
-if ASYNC_HLAPI_AVAILABLE:
-    from pysnmp.hlapi.v3arch.asyncio import (
-        CommunityData,
-        ContextData,
-        ObjectIdentity,
-        ObjectType,
-        SnmpEngine,
-    )
-    from pysnmp.hlapi.v3arch.asyncio.cmdgen import get_cmd
-    from pysnmp.hlapi.v3arch.asyncio.transport import UdpTransportTarget
-else:
-    from pysnmp.hlapi import (
-        CommunityData,
-        ContextData,
-        ObjectIdentity,
-        ObjectType,
-        SnmpEngine,
-        UdpTransportTarget,
-        getCmd,
-    )
+from easysnmp import Session
 
 # ---- SNMP OIDs (extend as needed) -----------------------------------------
 
@@ -164,61 +137,43 @@ def ssh_port_open(ip: str, timeout: float = 0.75) -> bool:
 
 # ---- SNMP helpers ----------------------------------------------------------
 
-def snmp_get(ip: str, community: str, oid: str, timeout=1.5, retries=1):
-    if ASYNC_HLAPI_AVAILABLE:
-        async def _async_get():
-            try:
-                transport = await UdpTransportTarget.create(
-                    (ip, 161), timeout=timeout, retries=retries
-                )
-                iterator = get_cmd(
-                    SnmpEngine(),
-                    CommunityData(community, mpModel=1),  # v2c
-                    transport,
-                    ContextData(),
-                    ObjectType(ObjectIdentity(oid)),
-                )
-                errorIndication, errorStatus, errorIndex, varBinds = await iterator
-            except Exception:
-                return None
-
-            if errorIndication or errorStatus:
-                return None
-
-            for _, value in varBinds:
-                return str(value.prettyPrint())
-            return None
-
-        return asyncio.run(_async_get())
-
-    iterator = getCmd(
-        SnmpEngine(),
-        CommunityData(community, mpModel=1),  # v2c
-        UdpTransportTarget((ip, 161), timeout=timeout, retries=retries),
-        ContextData(),
-        ObjectType(ObjectIdentity(oid)),
-    )
+def snmp_get(session: Session, oid: str) -> str | None:
     try:
-        errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
-    except StopIteration:
+        result = session.get(oid)
+    except Exception:
         return None
 
-    if errorIndication or errorStatus:
+    if not result or result.value is None:
         return None
 
-    for _, value in varBinds:
-        return str(value.prettyPrint())
-    return None
+    return str(result.value)
 
 
-def poll_device(ip: str, subnet_name: str, subnet_id: str, community: str,
-                snmp_timeout: float, snmp_retries: int) -> dict | None:
+def poll_device(
+    ip: str,
+    subnet_name: str,
+    subnet_id: str,
+    community: str,
+    snmp_timeout: float,
+    snmp_retries: int,
+) -> dict | None:
     if not ssh_port_open(ip, timeout=snmp_timeout):
+        return None
+
+    try:
+        session = Session(
+            hostname=ip,
+            community=community,
+            version=2,
+            timeout=snmp_timeout,
+            retries=snmp_retries,
+        )
+    except Exception:
         return None
 
     data = {"ip": ip, "source_subnet": subnet_id, "subnet_name": subnet_name}
     for field, oid in SNMP_OIDS.items():
-        value = snmp_get(ip, community, oid, timeout=snmp_timeout, retries=snmp_retries)
+        value = snmp_get(session, oid)
         if value is not None:
             data[field] = value
 
